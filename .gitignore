@@ -1,0 +1,15 @@
+# Ignore Python virtual environments
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Ignore system or binary files
+*.dll
+*.pyd
+*.so
+*.exe
+*.log
+*.DS_Store
+# Ignore Python virtual environments
+.venv/
