@@ -21,13 +21,20 @@ export default function FractureRiskForm() {
       ...formData,
       smoking: formData.smoking === 'Yes' ? 1 : 0,
     };
-    const response = await fetch('/api/fracture-risk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json();
-    setRisk(data.risk);
+
+    try {
+      const response = await fetch('/api/fracture-risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      setRisk(data.risk);  // Expecting value like 0.73
+    } catch (err) {
+      console.error('Error fetching risk:', err);
+      setRisk(null);
+    }
   };
 
   return (
@@ -105,10 +112,11 @@ export default function FractureRiskForm() {
           Calculate Risk
         </button>
       </form>
+
       {risk !== null && (
         <div className="mt-6 p-4 bg-green-100 text-green-800 rounded">
           <h2 className="text-xl font-medium">Estimated 10-year Fracture Risk:</h2>
-          <p className="text-3xl font-bold">{risk}%</p>
+          <p className="text-3xl font-bold">{(risk * 100).toFixed(1)}%</p>
         </div>
       )}
     </div>
