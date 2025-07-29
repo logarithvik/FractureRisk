@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 # Use standalone Keras
-from keras.models import Sequential, load_model
+from tensorflow.keras.models import Sequential, load_model
 from keras.layers import Input, Dense, Dropout
 from keras.optimizers import Adam
 from keras.metrics import AUC
