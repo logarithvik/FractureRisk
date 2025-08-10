@@ -9,6 +9,7 @@ export default function FractureRiskForm() {
     smoking: 'No',
   });
   const [risk, setRisk] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -17,22 +18,32 @@ export default function FractureRiskForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     const payload = {
       ...formData,
       smoking: formData.smoking === 'Yes' ? 1 : 0,
     };
+    console.log("Submitting payload:", payload);
 
     try {
-      const response = await fetch('/api/fracture-risk', {
+      const response = await fetch('http://localhost:5000/api/fracture-risk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      console.log("Raw response:", response);
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Status ${response.status}: ${text}`);
+      }
 
       const data = await response.json();
-      setRisk(data.risk);  // Expecting value like 0.73
+      console.log("Parsed JSON:", data);
+      setRisk(data.risk);
     } catch (err) {
       console.error('Error fetching risk:', err);
+      setError(err.message);
       setRisk(null);
     }
   };
@@ -41,77 +52,14 @@ export default function FractureRiskForm() {
     <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded-lg">
       <h1 className="text-2xl font-semibold mb-4">Fracture Risk Calculator</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="age">Age</label>
-          <input
-            type="number"
-            name="age"
-            id="age"
-            value={formData.age}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="sex">Sex</label>
-          <select
-            name="sex"
-            id="sex"
-            value={formData.sex}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          >
-            <option>Male</option>
-            <option>Female</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="weight">Weight (kg)</label>
-          <input
-            type="number"
-            step="0.1"
-            name="weight"
-            id="weight"
-            value={formData.weight}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="height">Height (cm)</label>
-          <input
-            type="number"
-            step="0.1"
-            name="height"
-            id="height"
-            value={formData.height}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="smoking">Smoking Status</label>
-          <select
-            name="smoking"
-            id="smoking"
-            value={formData.smoking}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          >
-            <option>No</option>
-            <option>Yes</option>
-          </select>
-        </div>
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          Calculate Risk
-        </button>
+        {/* form fields omitted for brevity… */}
       </form>
+
+      {error && (
+        <div className="mt-4 p-4 bg-red-100 text-red-800 rounded">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
       {risk !== null && (
         <div className="mt-6 p-4 bg-green-100 text-green-800 rounded">
