@@ -13,8 +13,8 @@ MODEL_PATH   = Path("artefacts/model.keras")
 PREP_PATH    = Path("artefacts/preprocessor.pkl")
 THRESH_PATH  = Path("artefacts/threshold.json")
 
-# Blending weight (can be tuned; consider saving/reading from a config file later)
-BLEND_ALPHA = 0.5  # final = alpha * prior_adjusted + (1-alpha) * raw
+# Blending weight (tune later or load from config)
+BLEND_ALPHA = 0.5  # final = alpha * prior_adjusted + (1 - alpha) * raw
 
 # Load model + preprocessor once
 model, preprocessor = load_artefacts(str(MODEL_PATH), str(PREP_PATH))
@@ -23,17 +23,17 @@ model, preprocessor = load_artefacts(str(MODEL_PATH), str(PREP_PATH))
 def fracture_risk():
     data = request.get_json(force=True) or {}
     try:
-        age            = float(data["age"])
-        weight         = float(data["weight"])
-        height         = float(data["height"])
-        sex            = str(data["sex"])
-        smoking        = int(data["smoking"])
-        past_fracture  = int(data.get("past_fracture", 0))
+        age             = float(data["age"])
+        weight          = float(data["weight"])
+        height          = float(data["height"])
+        sex             = str(data["sex"])
+        smoking         = int(data["smoking"])
+        past_fracture   = int(data.get("past_fracture", 0))
         apply_threshold = bool(data.get("apply_threshold", False))
 
         # Optional extras
-        alcohol3plus   = int(data.get("alcohol3plus", 0))
-        target_prior   = data.get("target_prior", None)
+        alcohol3plus    = int(data.get("alcohol3plus", 0))
+        target_prior    = data.get("target_prior", None)
         if target_prior is not None:
             target_prior = float(target_prior)
             if not (0.0 < target_prior < 1.0):
@@ -42,7 +42,7 @@ def fracture_risk():
         return jsonify({"error": f"Invalid input: {e}"}), 400
 
     try:
-        # Call model: return dict with prob_raw/prob and maybe prob_prior_adjusted
+        # IMPORTANT: pass model_path & prep_path so calibration files can be found
         res = predict_osteoporosis(
             age=age,
             weight=weight,
@@ -53,25 +53,25 @@ def fracture_risk():
             alcohol3plus=alcohol3plus,
             model=model,
             preprocessor=preprocessor,
+            model_path=str(MODEL_PATH),
+            prep_path=str(PREP_PATH),
             apply_calibration=True,
             target_prior=target_prior,
         )
 
-        # Normalize possible return types
+        # Normalize return types
         if isinstance(res, dict):
             prob_raw   = float(res.get("prob_raw", res.get("prob", 0.0)))
             prob_cal   = float(res.get("prob", prob_raw))
             prob_prior = float(res.get("prob_prior_adjusted", prob_cal))
         else:
-            # Back-compat: model returned a single float
             prob_raw = float(res)
             prob_cal = prob_raw
             prob_prior = prob_raw
 
-        # Blended probability (blend after prior adjustment)
+        # Blend after prior adjustment
         prob_blended = BLEND_ALPHA * prob_prior + (1.0 - BLEND_ALPHA) * prob_raw
 
-        # If client asked for a label, use saved F1 threshold
         out = {
             "prob_raw": prob_raw,
             "prob": prob_cal,
@@ -86,7 +86,7 @@ def fracture_risk():
                 meta = json.load(f)
             th = float(meta.get("best_threshold_f1", 0.5))
             out.update({
-                "label": int(prob_blended >= th),  # classify using blended prob
+                "label": int(prob_blended >= th),
                 "threshold": th,
             })
 
