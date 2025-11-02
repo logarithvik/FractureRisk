@@ -1,6 +1,6 @@
 {
-  "best_threshold_f1": 0.6031041741371155,
-  "best_threshold_youdenJ": 0.5283664464950562,
-  "pr_auc": 0.2846969864668402,
+  "best_threshold_f1": 0.5581231713294983,
+  "best_threshold_youdenJ": 0.5379481315612793,
+  "pr_auc": 0.2418227081474367,
   "val_positive_rate": 0.0625
 }
