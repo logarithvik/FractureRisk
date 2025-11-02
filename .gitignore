@@ -12,4 +12,4 @@ __pycache__/
 *.log
 *.DS_Store
 # Ignore Python virtual environments
-.venv/
+.venv/backend/venv/
