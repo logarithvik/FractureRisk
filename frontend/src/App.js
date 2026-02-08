@@ -1,12 +1,8 @@
-import React from 'react';
-import FractureRiskForm from './FractureRiskForm';
+import React from "react";
+import FractureRiskForm from "./FractureRiskForm";
 
 function App() {
-  return (
-    <div className="App">
-      <FractureRiskForm />
-    </div>
-  );
+  return <FractureRiskForm />;
 }
 
 export default App;

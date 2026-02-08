@@ -1,229 +1,137 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 export default function FractureRiskForm() {
-  const [formData, setFormData] = useState({
-    age: '',
-    sex: 'Male',
-    weight: '',
-    height: '',
-    smoking: 'No',
-    past_fracture: 'No',
-    alcohol3plus: 'No'
+  const [form, setForm] = useState({
+    age: 65,
+    sex: "Female",
+    bmi: 25.0,
+    past_fracture: 0,
+    smoking: 0,
+    alcohol3plus: 0,
   });
 
-  const [risk, setRisk] = useState(null);
-  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
-  // keep form state synced with inputs
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const onChange = (key, val) => {
+    setForm((f) => ({ ...f, [key]: val }));
   };
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setRisk(null); // clear old result
-
-    // build payload in the format server.py expects
-    const payload = {
-      age: formData.age,
-      sex: formData.sex,
-      weight: formData.weight,
-      height: formData.height,
-      smoking: formData.smoking === 'Yes' ? 1 : 0,
-      past_fracture: formData.past_fracture === 'Yes' ? 1 : 0,
-      alcohol3plus: formData.alcohol3plus === 'Yes' ? 1 : 0,           
-      apply_threshold: false,    // you can set true later if you want label + threshold
-    };
+    setError("");
+    setResult(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/fracture-risk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const res = await fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          age: Number(form.age),
+          sex: form.sex,
+          bmi: Number(form.bmi),
+          past_fracture: Number(form.past_fracture),
+          smoking: Number(form.smoking),
+          alcohol3plus: Number(form.alcohol3plus),
+        }),
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Status ${response.status}: ${text}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || "Request failed");
+        return;
       }
-
-      const data = await response.json();
-      console.log("Backend response:", data);
-
-      // choose best available probability
-      const finalProb =
-        data.prob_blended ??
-        data.prob_prior_adjusted ??
-        data.prob ??
-        data.prob_raw ??
-        null;
-
-      if (finalProb === null || Number.isNaN(finalProb)) {
-        setError("Model returned no valid probability");
-        setRisk(null);
-      } else {
-        setRisk(Number(finalProb));
-      }
+      setResult(data);
     } catch (err) {
-      console.error('Error fetching risk:', err);
-      setError(err.message || 'Request failed');
-      setRisk(null);
+      setError("Could not reach backend. Is backend running on port 5000?");
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded-lg">
-      <h1 className="text-2xl font-semibold mb-4 text-center">
-        Fracture Risk Calculator
-      </h1>
+    <div style={{ maxWidth: 520, margin: "40px auto", fontFamily: "Arial, sans-serif" }}>
+      <h2>Fracture Risk Calculator (FRAX-lite)</h2>
+      <p style={{ color: "#666" }}>
+        Uses Age, Sex, BMI, Smoking, Alcohol ≥3, Past Fracture. No BMD or other FRAX fields.
+      </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={submit}>
+        <label style={{ display: "block", marginTop: 12 }}>Age</label>
+        <input
+          type="number"
+          min="40"
+          max="100"
+          value={form.age}
+          onChange={(e) => onChange("age", e.target.value)}
+          style={{ width: "100%", padding: 10 }}
+        />
 
-        {/* Age */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Age (years)
-          </label>
-          <input
-            type="number"
-            name="age"
-            value={formData.age}
-            onChange={handleChange}
-            required
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
-            min="0"
-          />
-        </div>
-
-        {/* Sex */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Sex
-          </label>
-          <select
-            name="sex"
-            value={formData.sex}
-            onChange={handleChange}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-
-        {/* Weight */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Weight (kg)
-          </label>
-          <input
-            type="number"
-            name="weight"
-            value={formData.weight}
-            onChange={handleChange}
-            required
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
-            min="0"
-            step="0.1"
-          />
-        </div>
-
-        {/* Height */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Height (cm)
-          </label>
-          <input
-            type="number"
-            name="height"
-            value={formData.height}
-            onChange={handleChange}
-            required
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
-            min="0"
-            step="0.1"
-          />
-        </div>
-
-        {/* Smoking */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Do you currently smoke?
-          </label>
-          <select
-            name="smoking"
-            value={formData.smoking}
-            onChange={handleChange}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-        </div>
-
-        {/* Past fracture */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Have you had a bone fracture before?
-          </label>
-          <select
-            name="past_fracture"
-            value={formData.past_fracture}
-            onChange={handleChange}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            (Example: wrist, hip, spine, etc.)
-          </p>
-        </div>
-
-        {/* Alcohol consumption */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            On days you drink alcohol, do you usually have 3+ drinks?
-          </label>
-          <select
-            name="alcohol3plus"
-            value={formData.alcohol3plus}
-            onChange={handleChange}
-            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            <option value="No">No / Rarely</option>
-            <option value="Yes">Yes, usually 3+</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            We use this because heavy drinking is linked to bone loss.
-          </p>
-        </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          className="w-full rounded bg-blue-600 text-white font-medium py-2 hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-300"
+        <label style={{ display: "block", marginTop: 12 }}>Sex</label>
+        <select
+          value={form.sex}
+          onChange={(e) => onChange("sex", e.target.value)}
+          style={{ width: "100%", padding: 10 }}
         >
-          Calculate Risk
+          <option>Female</option>
+          <option>Male</option>
+        </select>
+
+        <label style={{ display: "block", marginTop: 12 }}>BMI</label>
+        <input
+          type="number"
+          step="0.1"
+          value={form.bmi}
+          onChange={(e) => onChange("bmi", e.target.value)}
+          style={{ width: "100%", padding: 10 }}
+        />
+
+        <label style={{ display: "block", marginTop: 12 }}>Past Fracture (0/1)</label>
+        <input
+          type="number"
+          min="0"
+          max="1"
+          value={form.past_fracture}
+          onChange={(e) => onChange("past_fracture", e.target.value)}
+          style={{ width: "100%", padding: 10 }}
+        />
+
+        <label style={{ display: "block", marginTop: 12 }}>Smoking (0/1)</label>
+        <input
+          type="number"
+          min="0"
+          max="1"
+          value={form.smoking}
+          onChange={(e) => onChange("smoking", e.target.value)}
+          style={{ width: "100%", padding: 10 }}
+        />
+
+        <label style={{ display: "block", marginTop: 12 }}>Alcohol ≥3 units/day (0/1)</label>
+        <input
+          type="number"
+          min="0"
+          max="1"
+          value={form.alcohol3plus}
+          onChange={(e) => onChange("alcohol3plus", e.target.value)}
+          style={{ width: "100%", padding: 10 }}
+        />
+
+        <button style={{ marginTop: 16, width: "100%", padding: 12 }}>
+          Calculate
         </button>
       </form>
 
       {error && (
-        <div className="mt-6 p-4 bg-red-100 text-red-800 rounded">
-          <strong>Error:</strong> {error}
+        <div style={{ marginTop: 16, padding: 12, border: "1px solid #f3c", borderRadius: 8 }}>
+          {error}
         </div>
       )}
 
-      {risk !== null && !Number.isNaN(risk) && (
-        <div className="mt-8 p-4 bg-green-100 text-green-800 rounded text-center">
-          <h2 className="text-xl font-medium mb-2">
-            Estimated 10-year Fracture Risk:
-          </h2>
-          <p className="text-3xl font-bold">
-            {(risk * 100).toFixed(1)}%
-          </p>
+      {result && (
+        <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 8 }}>
+          <div><b>Major osteoporotic risk:</b> {result.major_percent}%</div>
+          <div><b>Hip fracture risk:</b> {result.hip_percent}%</div>
+          <div style={{ marginTop: 10, color: "#666" }}>
+            Raw: major={Number(result.major_risk).toFixed(4)}, hip={Number(result.hip_risk).toFixed(4)}
+          </div>
         </div>
       )}
     </div>

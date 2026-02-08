@@ -1,6 +1,9 @@
 # Ignore Python virtual environments
+backend/venv/
 .venv/
 env/
+
+# Python cache
 __pycache__/
 *.pyc
 
@@ -11,5 +14,4 @@ __pycache__/
 *.exe
 *.log
 *.DS_Store
-# Ignore Python virtual environments
-.venv/backend/venv/
+
