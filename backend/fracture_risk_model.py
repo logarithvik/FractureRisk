@@ -41,6 +41,35 @@ def _risk_bucket(pct: float) -> str:
         return "High"
     return "Very high"
 
+def _friendly_overview(major_pct: float, hip_pct: float) -> str:
+    # Simple, reassuring phrasing
+    if major_pct < 5 and hip_pct < 1:
+        return "You have a very low chance of a bone fracture in the next 10 years."
+    if major_pct < 10 and hip_pct < 3:
+        return "You have a low chance of a bone fracture in the next 10 years."
+    if major_pct < 20:
+        return "Your fracture risk is moderate and worth keeping an eye on."
+    return "Your fracture risk is higher than average. It may be worth discussing with your doctor."
+
+def _friendly_category(level: str) -> str:
+    if level == "Low":
+        return "Your bone health looks good! You are in the safest category."
+    if level == "Moderate":
+        return "Your bone health is generally stable, but a few preventive steps may help."
+    if level == "High":
+        return "Your risk is elevated. Taking preventive steps could help reduce your chance of fracture."
+    return "Your risk is quite high. Please consider talking to a healthcare provider."
+
+def _friendly_comparison_text(comparison: str, age_group_label: str) -> str:
+    if comparison == "Below average":
+        return f"You are doing better than most people in your age group ({age_group_label})."
+    if comparison == "Around average":
+        return f"Your risk is similar to most people in your age group ({age_group_label})."
+    if comparison == "Above average":
+        return f"Your risk is higher than most people in your age group ({age_group_label})."
+    return "We could not compare your result to the age-group baseline."
+
+
 def _sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
@@ -104,26 +133,40 @@ def frax_lite_predict(inputs: Dict[str, Any]) -> Dict[str, Any]:
         if age_band["age_max"] < 200 else "80+"
     )
 
+    major_level = _risk_bucket(major_pct)
+    hip_level = _risk_bucket(hip_pct)
+
+    major_vs_age = _compare(major_pct, age_band.get("major_mean_pct"))
+    hip_vs_age = _compare(hip_pct, age_band.get("hip_mean_pct"))
+
     summary = {
+        # ✅ Friendly text like your examples
+        "friendly_overview": _friendly_overview(major_pct, hip_pct),
+        "friendly_category": _friendly_category(major_level),
+        "friendly_comparison": _friendly_comparison_text(major_vs_age, age_group_label),
+
+        # ✅ Keep these so your existing UI and debugging still works
         "one_liner": f"Estimated 10-year risks: Major {major_pct}%, Hip {hip_pct}%.",
         "risk_level": {
-            "major": _risk_bucket(major_pct),
-            "hip": _risk_bucket(hip_pct),
+            "major": major_level,
+            "hip": hip_level,
         },
         "comparison": {
             "age_group": age_group_label,
-            "major_vs_age_mean": _compare(major_pct, age_band.get("major_mean_pct")),
-            "hip_vs_age_mean": _compare(hip_pct, age_band.get("hip_mean_pct")),
+            "major_vs_age_mean": major_vs_age,
+            "hip_vs_age_mean": hip_vs_age,
             "major_vs_sex_mean": _compare(major_pct, sex_ref.get("major_mean_pct")),
             "hip_vs_sex_mean": _compare(hip_pct, sex_ref.get("hip_mean_pct")),
         },
         "context_note": (
-            "The age-group and sex baselines are population averages for context and may not match your exact profile."
+            "The comparison is based on population averages and may not match your exact health profile."
         ),
         "next_step_hint": (
-            "If these results are concerning, consider discussing bone health screening with a clinician."
+            "If you have concerns, consider discussing bone health screening with your doctor."
         ),
     }
+
+
 
     return {
         # --- keep existing fields ---

@@ -127,100 +127,118 @@ export default function FractureRiskForm() {
 
       {result && (
         <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 8 }}>
-          {/* <div><b>Major osteoporotic risk:</b> {result.major_percent}%</div> */}
-          {/* <div><b>Hip fracture risk:</b> {result.hip_percent}%</div> */}
+          {/* Main results */}
+          <div><b>Major osteoporotic risk:</b> {result.major_percent}%</div>
+          <div><b>Hip fracture risk:</b> {result.hip_percent}%</div>
 
-          {/* Summary */}
-          {result.summary?.one_liner && (
-            <div style={{ marginTop: 10, padding: 10, background: "#f7f7f7", borderRadius: 8 }}>
-              <b>Summary:</b> {result.summary.one_liner}
-              {result.summary?.risk_level && (
-                <div style={{ marginTop: 6, color: "#444" }}>
-                  <b>Risk Level:</b> Major {result.summary.risk_level.major}, Hip {result.summary.risk_level.hip}
+          {/* Friendly summary (60-year-old friendly) */}
+          {result.summary?.friendly_overview && (
+            <div style={{ marginTop: 12, padding: 12, background: "#f7f7f7", borderRadius: 8 }}>
+              <div style={{ fontSize: 16, fontWeight: "bold" }}>
+                {result.summary.friendly_overview}
+              </div>
+
+              {result.summary?.friendly_category && (
+                <div style={{ marginTop: 8 }}>
+                  {result.summary.friendly_category}
+                </div>
+              )}
+
+              {result.summary?.friendly_comparison && (
+                <div style={{ marginTop: 8 }}>
+                  {result.summary.friendly_comparison}
+                </div>
+              )}
+
+              {result.summary?.next_step_hint && (
+                <div style={{ marginTop: 10, color: "#444" }}>
+                  {result.summary.next_step_hint}
                 </div>
               )}
             </div>
           )}
 
-          {/* Comparison */}
-          {result.summary?.comparison && (
-            <div style={{ marginTop: 10, padding: 10, background: "#f7f7f7", borderRadius: 8 }}>
-              <b>Compared to averages</b>
-              <div style={{ marginTop: 6 }}>
-                <b>Age group ({result.summary.comparison.age_group}):</b>{" "}
-                Major is <b>{result.summary.comparison.major_vs_age_mean}</b>, Hip is{" "}
-                <b>{result.summary.comparison.hip_vs_age_mean}</b>
+          {/* Age-group baseline table */}
+          {result.population_reference?.table_age_groups && (
+            <div style={{ marginTop: 14 }}>
+              <b>Typical averages by age group</b>
+              <div style={{ color: "#666", fontSize: 12, marginTop: 4 }}>
+                {result.population_reference.source}
               </div>
-              <div style={{ marginTop: 6 }}>
-                <b>Same sex:</b>{" "}
-                Major is <b>{result.summary.comparison.major_vs_sex_mean}</b>, Hip is{" "}
-                <b>{result.summary.comparison.hip_vs_sex_mean}</b>
-              </div>
+
+              <table style={{ width: "100%", marginTop: 10, borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Age Group</th>
+                    <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Major %</th>
+                    <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Hip %</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.population_reference.table_age_groups.map((row, idx) => {
+                    const label = row.age_max >= 200 ? "80+" : `${row.age_min}-${row.age_max}`;
+
+                    const selected =
+                      result.population_reference?.selected_age_group &&
+                      row.age_min === result.population_reference.selected_age_group.age_min &&
+                      row.age_max === result.population_reference.selected_age_group.age_max;
+
+                    return (
+                      <tr key={idx} style={selected ? { background: "#eef7ff" } : undefined}>
+                        <td style={{ padding: 8, borderBottom: "1px solid #eee" }}>{label}</td>
+                        <td style={{ padding: 8, textAlign: "right", borderBottom: "1px solid #eee" }}>
+                          {row.major_mean_pct != null ? `${row.major_mean_pct}%` : "—"}
+                        </td>
+                        <td style={{ padding: 8, textAlign: "right", borderBottom: "1px solid #eee" }}>
+                          {row.hip_mean_pct != null ? `${row.hip_mean_pct}%` : "—"}
+                        </td>
+                        <td style={{ padding: 8, borderBottom: "1px solid #eee", color: "#666" }}>
+                          {row.note || ""}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
 
-          {/* Table */}
-          {result.population_reference?.table_age_groups && (
-            <div style={{ marginTop: 12 }}>
-              <b>Typical 10-year FRAX-based averages (by age group)</b>
-                <div style={{ color: "#666", fontSize: 12, marginTop: 4 }}>
-                  {result.population_reference.source}
-                </div>
-
-                <table style={{ width: "100%", marginTop: 10, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Age Group</th>
-                      <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Major %</th>
-                      <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Hip %</th>
-                      <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.population_reference.table_age_groups.map((row, idx) => {
-                      const label = row.age_max >= 200 ? "80+" : `${row.age_min}-${row.age_max}`;
-
-                      // highlight the selected age band
-                      const selected = result.population_reference?.selected_age_group
-                        && row.age_min === result.population_reference.selected_age_group.age_min
-                        && row.age_max === result.population_reference.selected_age_group.age_max;
-
-                      return (
-                        <tr key={idx} style={selected ? { background: "#eef7ff" } : undefined}>
-                          <td style={{ padding: 8, borderBottom: "1px solid #eee" }}>{label}</td>
-                          <td style={{ padding: 8, textAlign: "right", borderBottom: "1px solid #eee" }}>
-                            {row.major_mean_pct != null ? `${row.major_mean_pct}%` : "—"}
-                          </td>
-                          <td style={{ padding: 8, textAlign: "right", borderBottom: "1px solid #eee" }}>
-                            {row.hip_mean_pct != null ? `${row.hip_mean_pct}%` : "—"}
-                          </td>
-                          <td style={{ padding: 8, borderBottom: "1px solid #eee", color: "#666" }}>
-                            {row.note || ""}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Flags */}
-            {result.flags?.length > 0 && (
-              <div style={{ marginTop: 10, padding: 10, border: "1px solid #ffd27d", background: "#fff8e6", borderRadius: 8 }}>
-                <b>Notes:</b>
-                <ul style={{ marginTop: 6 }}>
-                  {result.flags.map((f, i) => <li key={i}>{f}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {/* Raw */}
-            <div style={{ marginTop: 10, color: "#666" }}>
-              Raw: major={Number(result.major_risk).toFixed(4)}, hip={Number(result.hip_risk).toFixed(4)}
+          {/* Notes / flags */}
+          {result.flags?.length > 0 && (
+            <div
+              style={{
+                marginTop: 12,
+                padding: 10,
+                border: "1px solid #ffd27d",
+                background: "#fff8e6",
+                borderRadius: 8,
+              }}
+            >
+              <b>Notes:</b>
+              <ul style={{ marginTop: 6 }}>
+                {result.flags.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
             </div>
-            </div>
-            )}
+          )}
+
+          {/* Technical details (optional) */}
+          <div style={{ marginTop: 12, color: "#666", fontSize: 13 }}>
+            <details>
+              <summary style={{ cursor: "pointer" }}>Show technical details</summary>
+              <div style={{ marginTop: 8 }}>
+                Raw: major={Number(result.major_risk).toFixed(4)}, hip={Number(result.hip_risk).toFixed(4)}
+              </div>
+              {result.summary?.one_liner && (
+                <div style={{ marginTop: 6 }}>{result.summary.one_liner}</div>
+              )}
+            </details>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
